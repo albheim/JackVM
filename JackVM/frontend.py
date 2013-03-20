@@ -469,14 +469,54 @@ class CompilationEngine:
         self.text += "  " * self.indent + "<expression>\n"
         self.indent += 1
         
-        while not self.tokenizer.token == ";":
+        self.compileTerm()
+        self.tokenizer.advance()
+        
+        while self.tokenizer.token == "-" or self.tokenizer.token == "+" or self.tokenizer.token == "*" or self.tokenizer.token == "/" or self.tokenizer.token == "&" or self.tokenizer.token == "|" or self.tokenizer.token == "<" or self.tokenizer.token == ">" or self.tokenizer.token == "=": 
+            self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
+            self.compileTerm()
         
         self.indent -= 1
         self.text += "  " * self.indent + "</expression>\n"
     
     def compileTerm(self):
-        pass
+        self.text += "  " * self.indent + "<term>\n"
+        self.indent += 1
+        
+        if self.tokenizer.tokenType() == Tokenizer.INT_CONST:
+            self.text += "  " * self.indent + self.tokenizer.intVal()
+            self.tokenizer.advance()
+        elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+            self.text += "  " * self.indent + self.tokenizer.stringVal()
+            self.tokenizer.advance()
+        elif self.tokenizer.token == "(":
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.compileExpression()
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+        elif self.tokenizer.token == "true" or self.tokenizer.token == "false" or  self.tokenizer.token == "null" or  self.tokenizer.token == "this":
+            self.text += "  " * self.indent + self.tokenizer.keyWord()
+        elif self.tokenizer.tokenType() == Tokenizer.IDENTIFIER:
+            if self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
+                pass
+        
+        self.indent -= 1
+        self.text += "  " * self.indent + "</term>\n"
 
 
 def getFiles(path):
