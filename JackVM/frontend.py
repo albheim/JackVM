@@ -355,8 +355,6 @@ class CompilationEngine:
         
         self.compileStatements()
         
-        print "sub " + self.tokenizer.token
-        print "sub " + self.text
         
         self.text += "  " * self.indent + self.tokenizer.symbol()
         
@@ -433,7 +431,7 @@ class CompilationEngine:
         self.text += "  " * self.indent + "</statements>\n"
     
     def compileDo(self):
-        self.text += "  " * self.indent + "<doStatement>"
+        self.text += "  " * self.indent + "<doStatement>\n"
         self.indent += 1
         
         self.text += "  " * self.indent + self.tokenizer.keyWord()
@@ -445,20 +443,21 @@ class CompilationEngine:
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
             
-            self.text += "  " * self.indent + "<expressionList>"
-            self.indent += 1
-            
-            self.compileExpression()
-            self.tokenizer.advance()
-            
-            while self.tokenizer.token == ",":
+            if not self.tokenizer.token == ")":
+                self.text += "  " * self.indent + "<expressionList>\n"
+                self.indent += 1
+                
+                self.compileExpression()
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
-                self.compileExpression()
-                self.tokenizer.advance()
-                
-            self.indent -= 1
-            self.text += "  " * self.indent + "</expressionList>"
+                while self.tokenizer.token == ",":
+                    self.text += "  " * self.indent + self.tokenizer.symbol()
+                    self.tokenizer.advance()
+                    self.compileExpression()
+                    self.tokenizer.advance()
+                    
+                self.indent -= 1
+                self.text += "  " * self.indent + "</expressionList>\n"
             
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
@@ -470,26 +469,27 @@ class CompilationEngine:
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
             
-            self.text += "  " * self.indent + "<expressionList>"
+            self.text += "  " * self.indent + "<expressionList>\n"
             self.indent += 1
-            
-            self.compileExpression()
-            self.tokenizer.advance()
-            
-            while self.tokenizer.token == ",":
-                self.text += "  " * self.indent + self.tokenizer.symbol()
-                self.tokenizer.advance()
+            if not self.tokenizer.token == ")":
                 self.compileExpression()
-                self.tokenizer.advance()
+                while self.tokenizer.token == ",":
+                    self.text += "  " * self.indent + self.tokenizer.symbol()
+                    self.tokenizer.advance()
+                    self.compileExpression()
+                    self.tokenizer.advance()
                 
             self.indent -= 1
-            self.text += "  " * self.indent + "</expressionList>"
-            
+            self.text += "  " * self.indent + "</expressionList>\n"
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
+
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+        
                     
         self.indent -= 1
-        self.text += "  " * self.indent + "</doStatement>"
+        self.text += "  " * self.indent + "</doStatement>\n"
     
     def compileLet(self):
         self.text += "  " * self.indent + "<letStatement>\n"
@@ -499,6 +499,14 @@ class CompilationEngine:
         self.tokenizer.advance()
         self.text += "  " * self.indent + self.tokenizer.identifier()
         self.tokenizer.advance()
+        if self.tokenizer.token == "[":
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+            
+            self.compileExpression()
+            
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
         self.text += "  " * self.indent + self.tokenizer.symbol()
         self.tokenizer.advance()
         
@@ -626,20 +634,21 @@ class CompilationEngine:
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
                 
-                self.text += "  " * self.indent + "<expressionList>\n"
-                self.indent += 1
-                
-                self.compileExpression()
-                self.tokenizer.advance()
-                
-                while self.tokenizer.token == ",":
+                if not self.tokenizer.token == ")":
+                    self.text += "  " * self.indent + "<expressionList>\n"
+                    self.indent += 1
+                    
+                    self.compileExpression()
                     self.text += "  " * self.indent + self.tokenizer.symbol()
                     self.tokenizer.advance()
-                    self.compileExpression()
-                    self.tokenizer.advance()
-                    
-                self.indent -= 1
-                self.text += "  " * self.indent + "</expressionList>\n"
+                    while self.tokenizer.token == ",":
+                        self.text += "  " * self.indent + self.tokenizer.symbol()
+                        self.tokenizer.advance()
+                        self.compileExpression()
+                        self.tokenizer.advance()
+                        
+                    self.indent -= 1
+                    self.text += "  " * self.indent + "</expressionList>\n"
                 
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
