@@ -244,6 +244,10 @@ class Tokenizer:
     
     def symbol(self):
         if self.tokenType() == self.SYMBOL:
+            if self.token == "<":
+                self.token = "&lt;"
+            elif self.token == ">":
+                self.token = "&gt;"
             return "<symbol> " + self.token + " </symbol>\n"
         print "ERROR WHEN ASKING FOR SYMBOL " + self.token
     
@@ -311,7 +315,10 @@ class CompilationEngine:
         
         self.text += "  " * self.indent + self.tokenizer.keyWord()
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
+            self.text += "  " * self.indent + self.tokenizer.keyWord()
+        else:
+            self.text += "  " * self.indent + self.tokenizer.identifier()
         
         while not str(self.tokenizer.token) == ";":
             self.tokenizer.advance()
@@ -443,21 +450,20 @@ class CompilationEngine:
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
             
+            self.text += "  " * self.indent + "<expressionList>\n"
+            self.indent += 1
             if not self.tokenizer.token == ")":
-                self.text += "  " * self.indent + "<expressionList>\n"
-                self.indent += 1
-                
                 self.compileExpression()
-                self.text += "  " * self.indent + self.tokenizer.symbol()
-                self.tokenizer.advance()
                 while self.tokenizer.token == ",":
                     self.text += "  " * self.indent + self.tokenizer.symbol()
                     self.tokenizer.advance()
                     self.compileExpression()
-                    self.tokenizer.advance()
-                    
-                self.indent -= 1
-                self.text += "  " * self.indent + "</expressionList>\n"
+                
+            self.indent -= 1
+            self.text += "  " * self.indent + "</expressionList>\n"
+            
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
             
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
@@ -477,7 +483,6 @@ class CompilationEngine:
                     self.text += "  " * self.indent + self.tokenizer.symbol()
                     self.tokenizer.advance()
                     self.compileExpression()
-                    self.tokenizer.advance()
                 
             self.indent -= 1
             self.text += "  " * self.indent + "</expressionList>\n"
@@ -546,9 +551,8 @@ class CompilationEngine:
         
         self.text += "  " * self.indent + self.tokenizer.keyWord()
         self.tokenizer.advance()
-        
-        self.compileExpression()
-        
+        if not self.tokenizer.token == ";":
+            self.compileExpression()
         self.text += "  " * self.indent + self.tokenizer.symbol()
         self.tokenizer.advance()
         
@@ -612,6 +616,7 @@ class CompilationEngine:
             self.tokenizer.advance()
         elif self.tokenizer.token == "(":
             self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
             self.compileExpression()
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
@@ -621,6 +626,7 @@ class CompilationEngine:
             self.compileTerm()
         elif self.tokenizer.token == "true" or self.tokenizer.token == "false" or  self.tokenizer.token == "null" or  self.tokenizer.token == "this":
             self.text += "  " * self.indent + self.tokenizer.keyWord()
+            self.tokenizer.advance()
         elif self.tokenizer.tokenType() == Tokenizer.IDENTIFIER:
             self.text += "  " * self.indent + self.tokenizer.identifier()
             self.tokenizer.advance()
@@ -634,21 +640,17 @@ class CompilationEngine:
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
                 
+                self.text += "  " * self.indent + "<expressionList>\n"
+                self.indent += 1
                 if not self.tokenizer.token == ")":
-                    self.text += "  " * self.indent + "<expressionList>\n"
-                    self.indent += 1
-                    
                     self.compileExpression()
-                    self.text += "  " * self.indent + self.tokenizer.symbol()
-                    self.tokenizer.advance()
                     while self.tokenizer.token == ",":
                         self.text += "  " * self.indent + self.tokenizer.symbol()
                         self.tokenizer.advance()
                         self.compileExpression()
-                        self.tokenizer.advance()
-                        
-                    self.indent -= 1
-                    self.text += "  " * self.indent + "</expressionList>\n"
+                    
+                self.indent -= 1
+                self.text += "  " * self.indent + "</expressionList>\n"
                 
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
@@ -662,18 +664,15 @@ class CompilationEngine:
                 
                 self.text += "  " * self.indent + "<expressionList>\n"
                 self.indent += 1
-                
-                self.compileExpression()
-                
-                while self.tokenizer.token == ",":
-                    self.text += "  " * self.indent + self.tokenizer.symbol() 
-                    self.tokenizer.advance()
+                if not self.tokenizer.token == ")":
                     self.compileExpression()
-                    self.tokenizer.advance()
+                    while self.tokenizer.token == ",":
+                        self.text += "  " * self.indent + self.tokenizer.symbol()
+                        self.tokenizer.advance()
+                        self.compileExpression()
                     
                 self.indent -= 1
                 self.text += "  " * self.indent + "</expressionList>\n"
-                
                 
                 self.text += "  " * self.indent + self.tokenizer.symbol()
                 self.tokenizer.advance()
