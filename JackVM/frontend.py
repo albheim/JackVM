@@ -240,27 +240,27 @@ class Tokenizer:
     def keyWord(self):
         if self.tokenType() == self.KEYWORD:
             return "<keyword> " + self.token + " </keyword>\n"
-        print "ERROR WHEN ASKING FOR KEYWORD"
+        print "ERROR WHEN ASKING FOR KEYWORD " + self.token
     
     def symbol(self):
         if self.tokenType() == self.SYMBOL:
             return "<symbol> " + self.token + " </symbol>\n"
-        print "ERROR WHEN ASKING FOR SYMBOL"
+        print "ERROR WHEN ASKING FOR SYMBOL " + self.token
     
     def identifier(self):
         if self.tokenType() == self.IDENTIFIER:
             return "<identifier> " + self.token + " </identifier>\n"
-        print "ERROR WHEN ASKING FOR IDENTIFIER"
+        print "ERROR WHEN ASKING FOR IDENTIFIER " + self.token
     
     def intVal(self):
         if self.tokenType() == self.INT_CONST:
             return "<integerConstant> " + str(self.token) + " </integerConstant>\n"
-        print "ERROR WHEN ASKING FOR INT_CONST"
+        print "ERROR WHEN ASKING FOR INT_CONST " + self.token
     
     def stringVal(self):
         if self.tokenType() == self.STRING_CONST:
             return "<stringConstant> " + self.token + " </stringConstant>\n"
-        print "ERROR WHEN ASKING FOR STRING_CONST"
+        print "ERROR WHEN ASKING FOR STRING_CONST " + self.token
     
     def printSelf(self):
         if self.type == self.KEYWORD:
@@ -355,6 +355,9 @@ class CompilationEngine:
         
         self.compileStatements()
         
+        print "sub " + self.tokenizer.token
+        print "sub " + self.text
+        
         self.text += "  " * self.indent + self.tokenizer.symbol()
         
         self.indent -= 1
@@ -425,14 +428,68 @@ class CompilationEngine:
                 self.compileReturn()
             elif self.tokenizer.token == "if":
                 self.compileIf()
-            self.tokenizer.advance()
             
         self.indent -= 1
         self.text += "  " * self.indent + "</statements>\n"
     
     def compileDo(self):
-        while not self.tokenizer.token == ";":
+        self.text += "  " * self.indent + "<doStatement>"
+        self.indent += 1
+        
+        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        self.tokenizer.advance()
+        self.text += "  " * self.indent + self.tokenizer.identifier()
+        self.tokenizer.advance()
+        
+        if self.tokenizer.token == "(":
+            self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
+            
+            self.text += "  " * self.indent + "<expressionList>"
+            self.indent += 1
+            
+            self.compileExpression()
+            self.tokenizer.advance()
+            
+            while self.tokenizer.token == ",":
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                self.compileExpression()
+                self.tokenizer.advance()
+                
+            self.indent -= 1
+            self.text += "  " * self.indent + "</expressionList>"
+            
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+        elif self.tokenizer.token == ".":
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+            self.text += "  " * self.indent + self.tokenizer.identifier()
+            self.tokenizer.advance()
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+            
+            self.text += "  " * self.indent + "<expressionList>"
+            self.indent += 1
+            
+            self.compileExpression()
+            self.tokenizer.advance()
+            
+            while self.tokenizer.token == ",":
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                self.compileExpression()
+                self.tokenizer.advance()
+                
+            self.indent -= 1
+            self.text += "  " * self.indent + "</expressionList>"
+            
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+                    
+        self.indent -= 1
+        self.text += "  " * self.indent + "</doStatement>"
     
     def compileLet(self):
         self.text += "  " * self.indent + "<letStatement>\n"
@@ -446,7 +503,7 @@ class CompilationEngine:
         self.tokenizer.advance()
         
         self.compileExpression()
-        
+                
         self.text += "  " * self.indent + self.tokenizer.symbol()
         self.tokenizer.advance()
         
@@ -454,28 +511,83 @@ class CompilationEngine:
         self.text += "  " * self.indent + "</letStatement>\n"
     
     def compileWhile(self):
-        while not self.tokenizer.token == "}":
-            self.tokenizer.advance()
+        self.text += "  " * self.indent + "<whileStatement>\n"
+        self.indent += 1
+        
+        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        self.tokenizer.advance()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        self.compileExpression()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        
+        self.compileStatements()
+        
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        
+        self.indent -= 1
+        self.text += "  " * self.indent + "</whileStatement>\n"
     
     def compileReturn(self):
-        while not self.tokenizer.token == ";":
-            self.tokenizer.advance()
+        self.text += "  " * self.indent + "<returnStatement>\n"
+        self.indent += 1
+        
+        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        self.tokenizer.advance()
+        
+        self.compileExpression()
+        
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        
+        self.indent -= 1
+        self.text += "  " * self.indent + "</returnStatement>\n"
     
     def compileIf(self):
-        while not self.tokenizer.token == "}":
+        self.text += "  " * self.indent + "<ifStatement>\n"
+        self.indent += 1
+        
+        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        self.tokenizer.advance()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        self.compileExpression()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        
+        self.compileStatements()
+        
+        self.text += "  " * self.indent + self.tokenizer.symbol()
+        self.tokenizer.advance()
+        
+        if self.tokenizer.token == "else":
+            self.text += "  " * self.indent + self.tokenizer.keyWord()
             self.tokenizer.advance()
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+            self.compileStatements()
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+        
+        self.indent -= 1
+        self.text += "  " * self.indent + "</ifStatement>\n"
     
     def compileExpression(self):
         self.text += "  " * self.indent + "<expression>\n"
         self.indent += 1
-        
         self.compileTerm()
-        self.tokenizer.advance()
         
         while self.tokenizer.token == "-" or self.tokenizer.token == "+" or self.tokenizer.token == "*" or self.tokenizer.token == "/" or self.tokenizer.token == "&" or self.tokenizer.token == "|" or self.tokenizer.token == "<" or self.tokenizer.token == ">" or self.tokenizer.token == "=": 
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
             self.compileTerm()
+        
         
         self.indent -= 1
         self.text += "  " * self.indent + "</expression>\n"
@@ -495,26 +607,68 @@ class CompilationEngine:
             self.compileExpression()
             self.text += "  " * self.indent + self.tokenizer.symbol()
             self.tokenizer.advance()
+        elif self.tokenizer.token == "-" or self.tokenizer.token == "~":
+            self.text += "  " * self.indent + self.tokenizer.symbol()
+            self.tokenizer.advance()
+            self.compileTerm()
         elif self.tokenizer.token == "true" or self.tokenizer.token == "false" or  self.tokenizer.token == "null" or  self.tokenizer.token == "this":
             self.text += "  " * self.indent + self.tokenizer.keyWord()
         elif self.tokenizer.tokenType() == Tokenizer.IDENTIFIER:
-            if self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-            elif self.tokenizer.tokenType() == Tokenizer.STRING_CONST:
-                pass
-        
+            self.text += "  " * self.indent + self.tokenizer.identifier()
+            self.tokenizer.advance()
+            if self.tokenizer.token == "[":
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                self.compileExpression()
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+            elif self.tokenizer.token == "(":
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                
+                self.text += "  " * self.indent + "<expressionList>\n"
+                self.indent += 1
+                
+                self.compileExpression()
+                self.tokenizer.advance()
+                
+                while self.tokenizer.token == ",":
+                    self.text += "  " * self.indent + self.tokenizer.symbol()
+                    self.tokenizer.advance()
+                    self.compileExpression()
+                    self.tokenizer.advance()
+                    
+                self.indent -= 1
+                self.text += "  " * self.indent + "</expressionList>\n"
+                
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+            elif self.tokenizer.token == ".":
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                self.text += "  " * self.indent + self.tokenizer.identifier()
+                self.tokenizer.advance()
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+                
+                self.text += "  " * self.indent + "<expressionList>\n"
+                self.indent += 1
+                
+                self.compileExpression()
+                
+                while self.tokenizer.token == ",":
+                    self.text += "  " * self.indent + self.tokenizer.symbol() 
+                    self.tokenizer.advance()
+                    self.compileExpression()
+                    self.tokenizer.advance()
+                    
+                self.indent -= 1
+                self.text += "  " * self.indent + "</expressionList>\n"
+                
+                
+                self.text += "  " * self.indent + self.tokenizer.symbol()
+                self.tokenizer.advance()
+            
         self.indent -= 1
         self.text += "  " * self.indent + "</term>\n"
 
