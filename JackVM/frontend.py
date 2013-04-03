@@ -278,7 +278,49 @@ class Tokenizer:
         elif self.type == self.STRING_CONST:
             print self.stringVal()
         
+
+
+class SymbolTable:
+    def __init__(self):
+        self.names = []
+        self.types = []
+        self.kinds = []
+        self.index = []
+        self.cnts = {}
+    
+    def add(self, name, type, kind):
+        if not kind in self.cnts:
+            self.cnts[kind] = 0
+                
+        self.names.append(name)
+        self.types.append(type)
+        self.kinds.append(kind)
+        self.index.append(self.cnts[kind])
+        self.cnts[kind] += 1
         
+    
+    def get(self, name):
+        i = self.names.index(name)
+        if i:
+            return (self.types[i], self.kinds[i], self.index[i])
+        return False
+    
+    def fields(self):
+        n = 0
+        for i in kinds:
+            if i == "field":
+                n += 1
+        return n
+    
+    def pop(self):
+        for i in range(len(self.names)):
+            if self.types[i] == "var" or self.types[i] == "argument":
+                self.cnts[self.kinds[i]] -= 1
+                self.names.pop(i)
+                self.types.pop(i)
+                self.kinds.pop(i)
+                self.index.pop(i)
+    
         
 class CompilationEngine:
     def __init__(self, filein, fileout):
@@ -286,15 +328,16 @@ class CompilationEngine:
         self.fout = fileout
         self.text = ""
         self.indent = 1
-    
+        self.symboltable = SymbolTable()
+        
     def compileClass(self):
-        self.text += "<class>\n"
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        #class
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.identifier()
+        #classname
+        self.classname = self.tokenizer.token
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.symbol()
+        #{
         self.tokenizer.advance()
         
         while self.tokenizer.tokenType() == Tokenizer.KEYWORD:
@@ -304,119 +347,136 @@ class CompilationEngine:
                 self.compileSubroutine()
             self.tokenizer.advance()
         
-        self.text += "  " * self.indent + self.tokenizer.symbol()
-        self.text += "</class>"
+        #}
         
-        print self.text + "\n"*5
+        print self.text + "\n" * 5
         
     def compileClassVarDec(self):
-        self.text += "  " * self.indent + "<classVarDec>\n"
-        self.indent += 1
-        
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        #field or static
+        kind = self.tokenizer.token
+        type = ""
+        name = ""
         self.tokenizer.advance()
         if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
-            self.text += "  " * self.indent + self.tokenizer.keyWord()
+            #primitive
+            type = self.tokenizer.token
         else:
-            self.text += "  " * self.indent + self.tokenizer.identifier()
+            #classname
+            type = self.tokenizer.token
         
         while not str(self.tokenizer.token) == ";":
             self.tokenizer.advance()
-            self.text += "  " * self.indent + self.tokenizer.identifier()
+            #varname
+            self.symboltable.add(self.tokenizer.token, type, kind)
             self.tokenizer.advance()
-            self.text += "  " * self.indent + self.tokenizer.symbol()
-
-        self.indent -= 1
-        self.text += "  " * self.indent + "</classVarDec>\n"
+            #, or ;
 
     def compileSubroutine(self):
-        self.text += "  " * self.indent + "<subroutineDec>\n"
-        self.indent += 1
         
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
+        ismethod = False
+        if self.tokenizer.token == "method":
+            ismethod = True
+        #method, function or constructor
         self.tokenizer.advance()
-        if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
-            self.text += "  " * self.indent + self.tokenizer.keyWord()
+        classDec = not self.tokenizer.tokenType() == Tokenizer.KEYWORD
+        self.tokenizer.advance()
+        #subroutinename
+        name = self.tokenizer.token
+        self.tokenizer.advance()
+        #(
+        self.tokenizer.advance()
+        
+        i = self.compileParameterList()
+        
+        #)
+        
+        if ismethod:
+            self.text += "function " + self.classname + "." + name + " " + str(i + 1) + "\n"
+            self.text += "push argument 0\npop pointer 0\n"
         else:
-            self.text += "  " * self.indent + self.tokenizer.identifier()
-        self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.identifier()
-        self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.symbol()
-        self.tokenizer.advance()
+            self.text += "function " + self.classname + "." + name + " " + str(i) + "\n"
         
-        self.compileParameterList()
-        
-        self.text += "  " * self.indent + self.tokenizer.symbol()
-        
-        self.text += "  " * self.indent + "<subroutineBody>\n"
-        self.indent += 1
-        
-        self.tokenizer.advance()#{
-        self.text += "  " * self.indent + self.tokenizer.symbol()
+        #if function returns a class
+        if classDec:
+            self.text += "push constant " + str(self.symboltable.fields())
+            selt.text += "\ncall Memory.alloc 1\n"
         
         self.tokenizer.advance()
+        #{
+        self.tokenizer.advance()
+        #var or expressions
         while str(self.tokenizer.token) == "var":
             self.compileVarDec()
             self.tokenizer.advance()
         
         self.compileStatements()
         
+        #}
         
-        self.text += "  " * self.indent + self.tokenizer.symbol()
-        
-        self.indent -= 1
-        self.text += "  " * self.indent + "</subroutineBody>\n"
-        
-        self.indent -= 1
-        self.text += "  " * self.indent + "</subroutineDec>\n"
+        self.symboltable.pop()
     
     def compileParameterList(self):
-        self.text += "  " * self.indent + "<parameterList>\n"
-        self.indent += 1
-        
         if self.tokenizer.tokenType() == Tokenizer.SYMBOL:
-            self.indent -= 1
-            self.text += "  " * self.indent + "</parameterList>\n"
-            return 
-                
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
+            #0 params
+            return 0
+        type = ""
+        if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
+            #primitive type
+            type = self.tokenizer.token
+        else:
+            #class type
+            type = self.tokenizer.token
+        
+        cnt = 1
+        
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.identifier()
+        #argument name
+        self.symboltable.add(self.tokenizer.token, type, "argument")
         self.tokenizer.advance()
         while self.tokenizer.token == ",":
-            self.text += "  " * self.indent + self.tokenizer.symbol()
+            cnt += 1
+            #,
             self.tokenizer.advance()
-            self.text += "  " * self.indent + self.tokenizer.keyWord()
+            
+            type = self.tokenizer.token
+            if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
+                #primitive type
+                pass
+            else:
+                #class type
+                pass
+            
             self.tokenizer.advance()
-            self.text += "  " * self.indent + self.tokenizer.identifier()
+            #argument name
+            self.symboltable.add(self.tokenizer.token, type, "argument")
             self.tokenizer.advance()
-        self.indent -= 1
-        self.text += "  " * self.indent + "</parameterList>\n"
+            
+        return cnt
     
     def compileVarDec(self):
-        self.text += "  " * self.indent + "<varDec>\n"
-        self.indent += 1
+        #var
+        self.tokenizer.advance()
         
-        self.text += "  " * self.indent + self.tokenizer.keyWord()
-        self.tokenizer.advance()
+        type = self.tokenizer.token
         if self.tokenizer.tokenType() == Tokenizer.KEYWORD:
-            self.text += "  " * self.indent + self.tokenizer.keyWord()
+            #primitive type
+            pass
         else:    
-            self.text += "  " * self.indent + self.tokenizer.identifier()
+            #class type
+            pass
+        
         self.tokenizer.advance()
-        self.text += "  " * self.indent + self.tokenizer.identifier()
+        #var name
+        self.symboltable.add(self.tokenizer.token, type, "var")
         self.tokenizer.advance()
         while self.tokenizer.token == ",":
-            self.text += "  " * self.indent + self.tokenizer.symbol()
+            #,
             self.tokenizer.advance()
-            self.text += "  " * self.indent + self.tokenizer.identifier()
+            #var name
+            self.symboltable.add(self.tokenizer.token, type, "var")
             self.tokenizer.advance()
         
-        self.text += "  " * self.indent + self.tokenizer.symbol()
-
-        self.indent -= 1
-        self.text += "  " * self.indent + "</varDec>\n"
+        #;
     
     def compileStatements(self):
         self.text += "  " * self.indent + "<statements>\n"
@@ -703,6 +763,7 @@ def translate(path):
 if __name__ == "__main__":
     Tk().withdraw()
     translate(askopenfilename())
+    #translate(askdirectory())
 
 
         
